@@ -7,7 +7,7 @@
 [![Userscript](https://img.shields.io/badge/Tampermonkey-compatible-orange?style=flat-square)](https://github.com/kbkbs1332/Haloflow)
 
 
-> 中文 · [English](README.en.md)
+> 中文 · [English](README.en.md) · [在线主页](https://kbkbs1332.github.io/Haloflow/)
 
 把网页整页翻成中文，**保留原样式**，支持「直接替换」和「原文+译文双语」两种模式。
 带划词翻译、吸边悬浮球、三套独立方案、本地缓存、动态内容跟随，还有一个可选的自建中转服务。

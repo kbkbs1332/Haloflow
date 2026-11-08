@@ -11,7 +11,7 @@ Translate whole web pages into Chinese (or any target language) **while keeping 
 Two modes: *replace* and *bilingual* (original + translation side by side).
 Ships with selection popup, edge-snapping floating ball, three independent profiles, local cache, dynamic-content following, and an optional self-hosted relay.
 
-> [中文文档](README.md) · English
+> [中文文档](README.md) · English · [Homepage](https://kbkbs1332.github.io/Haloflow/)
 
 - Form 1: **Chrome / Edge extension** (MV3) — options page, popup, optional new tab
 - Form 2: **Userscript** (Tampermonkey et al.) — same capabilities, minus the new tab
