@@ -22,7 +22,7 @@ Backend is any OpenAI-compatible `/chat/completions` endpoint: DeepSeek, GLM, Ki
 
 ## Why HaloFlow
 
-- **Speed**: with a warm cache, a 119-block SCP article finishes in about 2 seconds. It streams as tokens arrive, translates short and long paragraphs in parallel, and splits long paragraphs at sentence boundaries. Works best with DeepSeek V4.1-Flash.
+- **Speed**: a 119-block SCP article takes about 2 seconds; a 1153-block GitHub markdown page takes 25 seconds. It streams as tokens arrive, translates short and long paragraphs in parallel, and splits long paragraphs at sentence boundaries. Works best with DeepSeek V4.1-Flash.
 - **Translation quality**: the same term gets the same translation across the page, long sentences are split where the meaning breaks, and the original register (casual or technical) is kept. Numbers, code, variable names and URLs are left alone. The system prompt is editable.
 - **Layout fidelity**: only text nodes are rewritten, never elements, so images, links and buttons stay intact. Bilingual mode appends the translation with pseudo-elements instead of inserting nodes, so grid and flex layouts don't shift, and dark sites follow automatically.
 
