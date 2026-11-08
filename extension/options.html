@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HaloFlow · 设置</title>
+<link rel="stylesheet" href="options.css" />
+</head>
+<body>
+<div class="bg"><span></span><span></span><span></span></div>
+
+<main class="shell">
+  <header class="hero">
+    <div class="hero-ring"><i></i><i></i><i></i></div>
+    <div>
+      <h1>HaloFlow</h1>
+      <p>AI 双语翻译 · 配置</p>
+    </div>
+  </header>
+
+  <div class="profiles" id="profiles"></div>
+
+  <div class="field">
+    <label for="pname">方案名</label>
+    <input id="pname" type="text" spellcheck="false" placeholder="给这套配置起个名字，比如「DeepSeek 快翻」" />
+  </div>
+
+  <section class="card">
+    <div class="card-hd">
+      <h2>模型与接口</h2>
+      <span class="badge" id="badgeProvider">中转站</span>
+    </div>
+
+    <div class="field">
+      <label for="baseUrl">Base URL</label>
+      <input id="baseUrl" type="text" spellcheck="false" placeholder="https://api.deepseek.com/v1" />
+      <p class="tip">填到 <code>/v1</code> 即可，会自动补 <code>/chat/completions</code></p>
+    </div>
+
+    <div class="field">
+      <label for="apiKey">API Key</label>
+      <div class="input-row">
+        <input id="apiKey" type="password" spellcheck="false" placeholder="sk-..." autocomplete="off" />
+        <button class="mini" id="btnEye" type="button">显示</button>
+      </div>
+      <p class="tip">只存在本机 <code>storage.local</code>，不上传任何服务器喵。<br>
+        选「自动/仅中转」时会原样透传给 opi，无需额外配置；点「测试连接」可立即验证</p>
+    </div>
+
+    <div class="field">
+      <label for="model">模型</label>
+      <input id="model" type="text" list="modelList" spellcheck="false" placeholder="deepseek-flash" value="deepseek-flash" />
+      <datalist id="modelList">
+        <option value="deepseek-flash"></option>
+        <option value="deepseek-v4-pro"></option>
+      </datalist>
+      <p class="tip">每个方案独立保存；留空时默认用 <code>deepseek-flash</code></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-hd"><h2>翻译行为</h2></div>
+
+    <div class="field">
+      <label>请求转发</label>
+      <div class="chips" id="forwardChips">
+        <div class="chip" data-fwd="auto">自动（优先 opi）</div>
+        <div class="chip" data-fwd="relay">仅中转</div>
+        <div class="chip" data-fwd="direct">本地直连</div>
+      </div>
+      <p class="tip">「自动」会先请求 opi 中转（Key 原样透传），连不上时自动回退到 Base URL 直连</p>
+    </div>
+
+    <div class="field">
+      <label for="targetLang">目标语言</label>
+      <input id="targetLang" type="text" placeholder="简体中文" />
+    </div>
+
+    <div class="field">
+      <label for="systemPrompt">系统提示词 <span class="muted">（{target} 会被替换成目标语言）</span></label>
+      <textarea id="systemPrompt" rows="5" spellcheck="false"></textarea>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label for="pageChunkSize">每批段落数</label>
+        <input id="pageChunkSize" type="number" min="10" max="60" value="14" />
+      </div>
+      <div class="field">
+        <label for="temperature">温度</label>
+        <input id="temperature" type="number" min="0" max="2" step="0.1" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>整页翻译模式</label>
+      <div class="chips" id="modeChips">
+        <div class="chip" data-mode="replace">直接替换（推荐）</div>
+        <div class="chip" data-mode="both">双语追加</div>
+      </div>
+      <p class="tip">替换模式直接改写正文，<b>保留原元素样式与排版</b>；双语模式在下方插入译文块</p>
+    </div>
+
+    <div class="field">
+      <label>并发策略</label>
+      <div class="chips" id="concChips">
+        <div class="chip" data-conc="auto">自动（按页面规模）</div>
+        <div class="chip" data-conc="manual">手动</div>
+      </div>
+      <p class="tip" id="concTip">自动：30 段以内 2 路、60 段 3 路、120 段 5 路、更多 6 路</p>
+    </div>
+
+    <div class="field" id="manualConcWrap" style="display:none">
+      <label for="maxConcurrency">手动并发数 <span class="muted">（1–8）</span></label>
+      <input id="maxConcurrency" type="number" min="1" max="8" value="4" />
+      <p class="tip">短文本与长文本各占一半；设太高可能触发 API 限流</p>
+    </div>
+
+    <div class="field">
+      <label>思考深度 <span class="muted">（DeepSeek thinking）</span></label>
+      <div class="chips" id="effortChips">
+        <div class="chip" data-effort="off">关闭 · 最快</div>
+        <div class="chip" data-effort="low">低</div>
+        <div class="chip" data-effort="high">高</div>
+        <div class="chip" data-effort="max">最高</div>
+      </div>
+      <p class="tip">DeepSeek 建议「关闭」；GLM 5.x 是强制思考模型（关不掉），请选「低」——实测比默认快 2 倍以上</p>
+    </div>
+
+    <div class="field">
+      <label>页面悬浮球</label>
+      <div class="chips" id="ballChips">
+        <div class="chip" data-ball="1">显示</div>
+        <div class="chip" data-ball="0">隐藏</div>
+      </div>
+      <p class="tip">可拖动，松手自动吸附到屏幕左右边缘</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-hd">
+      <h2>翻译缓存</h2>
+      <span class="badge" id="cacheBadge">— 条</span>
+    </div>
+    <p class="tip">
+      译好的句子存在 <code>chrome.storage.local</code>（持久保存），
+      恢复原文、切换模式或重新打开页面都会直接复用，不再重复请求 API；超过 1200 条自动丢最早的。
+    </p>
+    <div class="test-row">
+      <button class="primary" id="btnClearCache">清除缓存</button>
+      <span id="cacheOut" class="test-out">—</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-hd"><h2>实验性功能</h2><span class="badge">beta</span></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px">
+        <input id="expImg" type="checkbox" style="width:auto;padding:0" /> 图片翻译（需要多模态模型）
+      </label>
+      <p class="tip">开启后悬浮球菜单会多一项「图片翻译」：点它 → 点选页面里的图片 → 确认，会把图片交给模型做 OCR + 自动嵌字</p>
+    </div>
+    <div class="field" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="ghost" id="btnDiag" style="padding:10px 14px;border-radius:11px;border:1px solid rgba(120,160,210,.28);background:rgba(255,255,255,.04);color:#c6dcee;cursor:pointer;font-family:inherit;font-size:13px">诊断本页</button>
+      <button class="ghost" id="btnModels" style="padding:10px 14px;border-radius:11px;border:1px solid rgba(120,160,210,.28);background:rgba(255,255,255,.04);color:#c6dcee;cursor:pointer;font-family:inherit;font-size:13px">检测可用模型</button>
+      <span id="modelsOut" class="tip" style="flex:1;min-width:160px"></span>
+    </div>
+    <pre id="diagOut" style="display:none;white-space:pre-wrap;word-break:break-all;font-size:11.5px;line-height:1.5;max-height:240px;overflow:auto;margin-top:8px;padding:10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(120,160,210,.2);color:#c6dcee"></pre>
+  </section>
+
+  <section class="card">
+    <div class="card-hd"><h2>连接测试</h2></div>
+    <div class="test-row">
+      <button class="primary" id="btnTest">测试连接</button>
+      <span id="testOut" class="test-out">还没测过</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-hd"><h2>配置备份</h2><span class="badge">三套方案一起带走</span></div>
+    <div class="field" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ghost" id="btnExport" style="padding:10px 14px;border-radius:11px;border:1px solid rgba(120,160,210,.28);background:rgba(255,255,255,.04);color:#c6dcee;cursor:pointer;font-family:inherit;font-size:13px">导出配置</button>
+      <button class="ghost" id="btnImport" style="padding:10px 14px;border-radius:11px;border:1px solid rgba(120,160,210,.28);background:rgba(255,255,255,.04);color:#c6dcee;cursor:pointer;font-family:inherit;font-size:13px">导入配置</button>
+      <input id="importFile" type="file" accept=".json,application/json" style="display:none" />
+    </div>
+    <p class="tip">导出的 JSON 含全部三套方案（Base URL / Key / 模型 / 提示词），换设备直接导入即可</p>
+  </section>
+
+  <footer class="bar">
+    <button class="ghost" id="btnBack" style="padding:11px 16px;border-radius:11px;border:1px solid rgba(120,160,210,.28);background:rgba(255,255,255,.04);color:#c6dcee;cursor:pointer;font-family:inherit;font-size:13px;white-space:nowrap;flex:0 0 auto">← 返回网页</button>
+    <span id="saveHint" class="save-hint">改动会自动保存</span>
+    <button class="primary big" id="btnSave">保存配置</button>
+  </footer>
+</main>
+
+<script src="options.js"></script>
+</body>
+</html>

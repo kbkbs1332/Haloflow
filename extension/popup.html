@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HaloFlow</title>
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <header class="hd">
+      <div class="logo"><span class="ring"></span></div>
+      <div class="titles">
+        <h1>HaloFlow</h1>
+        <p>AI 双语翻译</p>
+      </div>
+      <button id="btnSettings" class="icon-btn" title="设置">⚙</button>
+    </header>
+
+    <div id="statusBar" class="status">
+      <span class="dot"></span>
+      <span id="statusText">读取中…</span>
+    </div>
+
+    <div class="mode-row">
+      <span class="mode-label">整页模式</span>
+      <div class="seg" id="modeSeg">
+        <button data-mode="replace" class="on">替换</button>
+        <button data-mode="both">双语</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btnPage" class="primary">
+        <span class="ico">◈</span>
+        <span class="lbl">翻译当前页面</span>
+      </button>
+      <button id="btnRestore" class="ghost">
+        <span class="ico">↺</span>
+        <span class="lbl">恢复原文</span>
+      </button>
+    </div>
+
+    <div class="hint">
+      选中文字即弹出翻译浮窗 · 页面右侧有悬浮球
+    </div>
+
+    <footer class="ft">
+      <a href="#" id="linkNewtab">光环首页</a>
+      <span class="sep">·</span>
+      <a href="#" id="linkOptions">配置</a>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

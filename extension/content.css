@@ -1,0 +1,114 @@
+/* HaloFlow · 页面内译文样式
+   双语模式不再插入 DOM 节点，而是用 ::after 伪元素追加，
+   这样不会产生新的 grid / flex 子项，窄卡片里也不会被撑成竖排。 */
+
+/* 让带译文的元素自动长高，避免译文与原文重叠 */
+[data-haloflow-tr] {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+[data-haloflow-tr]::after {
+  content: attr(data-haloflow-tr);
+  display: block;
+  position: relative;
+  z-index: 0;
+  margin: 0.22em 0 0;
+  padding-left: 0.5em;
+  border-left: 2px solid currentColor;
+  font-size: 0.86em;
+  line-height: 1.5;
+  font-style: normal;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  white-space: normal;
+  opacity: 0.6;
+}
+
+/* 标题类译文稍稍明显一点 */
+h1[data-haloflow-tr]::after,
+h2[data-haloflow-tr]::after,
+h3[data-haloflow-tr]::after,
+h4[data-haloflow-tr]::after {
+  opacity: 0.68;
+  font-size: 0.66em;
+  margin-top: 0.34em;
+  border-left: none;
+  padding-left: 0;
+  letter-spacing: 0.02em;
+}
+
+/* 表格单元格不要撑高 */
+td[data-haloflow-tr]::after,
+th[data-haloflow-tr]::after {
+  font-size: 0.82em;
+  margin-top: 0.15em;
+  border-left-width: 1px;
+  padding-left: 0.4em;
+}
+
+/* 老版本遗留的块（升级后仍然可能存在于已翻译页面里） */
+.haloflow-trans {
+  margin: 0.25em 0 0;
+  padding-left: 0.5em;
+  border-left: 2px solid currentColor;
+  font-size: 0.86em;
+  line-height: 1.5;
+  opacity: 0.6;
+}
+
+/* ---------- 每块末尾的灰色半透明 loading 圈 ---------- */
+.haloflow-spin {
+  box-sizing: border-box !important;
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 10px !important;
+  min-height: 10px !important;
+  max-width: 10px !important;
+  max-height: 10px !important;
+  aspect-ratio: 1 / 1 !important;
+  margin: 0 0 0 6px !important;
+  padding: 0 !important;
+  border: 1.6px solid rgba(128, 128, 128, 0.28) !important;
+  border-top-color: rgba(128, 128, 128, 0.78) !important;
+  border-radius: 50% !important;
+  background: none !important;
+  animation: haloflow-spin 0.8s linear infinite !important;
+  vertical-align: middle;
+  pointer-events: none !important;
+}
+
+@keyframes haloflow-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 横排导航 / 按钮：译文并排放在英文右边，掉到下一行会被父容器裁掉 */
+[data-haloflow-tr][data-haloflow-inline]::after {
+  display: inline;
+  margin: 0 0 0 .38em;
+  padding-left: 0;
+  border-left: none;
+  font-size: 0.78em;
+  line-height: inherit;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+
+/* ---------- 导航链接 / 按钮：译文不要溢出框 ---------- */
+[data-haloflow-action] {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+button[data-haloflow-action],
+[role="button"][data-haloflow-action] {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

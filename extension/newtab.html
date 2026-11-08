@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>HaloFlow</title>
+<link rel="stylesheet" href="newtab.css" />
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="vignette"></div>
+
+  <main class="stage">
+    <section class="clock-wrap">
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="date">—</div>
+    </section>
+
+    <form class="search" id="searchForm" autocomplete="off">
+      <span class="search-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+        </svg>
+      </span>
+      <input id="q" type="search" placeholder="搜索，或者输入网址…" spellcheck="false" />
+      <button type="submit" class="go" aria-label="搜索">↵</button>
+    </form>
+
+    <nav class="links" id="links"></nav>
+  </main>
+
+  <footer class="foot">
+    <span class="brand">HALOFLOW</span>
+    <span class="dot">·</span>
+    <span id="greet">你好</span>
+  </footer>
+
+  <script src="newtab.js"></script>
+</body>
+</html>
