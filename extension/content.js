@@ -504,12 +504,16 @@
 
   /* ================= 收集 ================= */
   const diag = {};
-  const rejected = [];   // 被拒的块（排查用，最多 30 条）
+  const rejected = {};   // { why: [text, ...] } 按原因分组，每类最多 8 条
   function bump(k) { diag[k] = (diag[k] || 0) + 1; }
   function reject(k, t) {
     bump(k);
-    if (rejected.length < 30) rejected.push({ why: k, text: String(t || '').replace(/\s+/g, ' ').trim().slice(0, 40) });
+    const arr = rejected[k] || (rejected[k] = []);
+    if (arr.length >= 8) return;
+    const str = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    if (str) arr.push(str);
   }
+  function resetRejected() { for (const k in rejected) delete rejected[k]; }
   function resetDiag() { for (const k in diag) delete diag[k]; }
   const DIAG_LABEL = {
     blockChild: '容器', notLeaf: '非叶子', skipSel: '跳过区', skipTag: '标签',
@@ -749,7 +753,7 @@
 
   function collectBlocks() {
     resetDiag();
-    rejected.length = 0;
+    resetRejected();
     let out = collectStrict();
     // 弹层补充（菜单/对话框里常带 notranslate，用户点开就是想看）
     const overlayBlocks = collectOverlays(out);
@@ -798,7 +802,7 @@
       loose: !!diag.looseTried,
       diag: Object.assign({}, diag),
       sample: list.slice(0, 5).map((b) => b.text.slice(0, 60)),
-      rejected: rejected.slice(0, 30),
+      rejected: Object.assign({}, rejected),
       mode: (typeof cfg === 'object' && cfg.translateMode) || ''
     };
   };
@@ -1456,9 +1460,15 @@
       lines.push('可翻段落 ' + r.collect.total + '  过滤 ' + JSON.stringify(r.collect.diag || {}));
       const s = r.collect.sample || [];
       if (s.length) lines.push('样本 ' + JSON.stringify(s.slice(0, 3)));
-      const rej = r.collect.rejected || [];
-      lines.push('--- 被跳过（' + rej.length + '）---');
-      rej.slice(0, 20).forEach((x) => lines.push('[' + x.why + '] ' + x.text));
+      const rej = r.collect.rejected || {};
+      lines.push('--- 被跳过的文本 ---');
+      const keys = Object.keys(rej);
+      if (!keys.length) lines.push('（没有记录）');
+      keys.forEach((why) => {
+        const total = (r.collect.diag && r.collect.diag[why]) || rej[why].length;
+        lines.push('[' + why + ' ×' + total + ']');
+        rej[why].forEach((t) => lines.push('    ' + t));
+      });
     } else {
       lines.push('收集信息不可用');
     }
