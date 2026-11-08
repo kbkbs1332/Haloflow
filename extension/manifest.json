@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "HaloFlow · AI 双语翻译",
   "short_name": "HaloFlow",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "description": "DeepSeek 驱动的网页双语翻译，支持替换/双语两种模式、吸边悬浮球，附带光环新标签页。",
   "permissions": [
     "storage",

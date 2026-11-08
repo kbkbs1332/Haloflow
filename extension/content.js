@@ -504,7 +504,12 @@
 
   /* ================= 收集 ================= */
   const diag = {};
+  const rejected = [];   // 被拒的块（排查用，最多 30 条）
   function bump(k) { diag[k] = (diag[k] || 0) + 1; }
+  function reject(k, t) {
+    bump(k);
+    if (rejected.length < 30) rejected.push({ why: k, text: String(t || '').replace(/\s+/g, ' ').trim().slice(0, 40) });
+  }
   function resetDiag() { for (const k in diag) delete diag[k]; }
   const DIAG_LABEL = {
     blockChild: '容器', notLeaf: '非叶子', skipSel: '跳过区', skipTag: '标签',
@@ -568,10 +573,10 @@
           el.removeAttribute('data-haloflow-out');
         }
         if (el.getAttribute('aria-hidden') === 'true') { bump('aria'); return; }
-        if (!isVisible(el)) { bump('hidden'); return; }
+        if (!isVisible(el)) { reject('hidden', (el.innerText || '').slice(0, 40)); return; }
 
         const t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
-        if (!acceptText(t, 3)) { bump('rejectText'); return; }
+        if (!acceptText(t, 3)) { reject('rejectText', t); return; }
         if (el.querySelector('svg style, style, script')) { bump('style'); return; }
 
         const nodes = textNodesOf(el);
@@ -741,6 +746,7 @@
 
   function collectBlocks() {
     resetDiag();
+    rejected.length = 0;
     let out = collectStrict();
     // 弹层补充（菜单/对话框里常带 notranslate，用户点开就是想看）
     const overlayBlocks = collectOverlays(out);
@@ -789,6 +795,7 @@
       loose: !!diag.looseTried,
       diag: Object.assign({}, diag),
       sample: list.slice(0, 5).map((b) => b.text.slice(0, 60)),
+      rejected: rejected.slice(0, 30),
       mode: (typeof cfg === 'object' && cfg.translateMode) || ''
     };
   };

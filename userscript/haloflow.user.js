@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaloFlow 双语翻译
 // @namespace    haloflow
-// @version      2.1.6
+// @version      2.1.7
 // @description  AI 双语翻译：划词浮窗 + 整页替换/双语 + 悬浮球 + 三套方案（油猴完全体）
 // @author       HaloFlow
 // @homepageURL  https://relay.example.com/panel
