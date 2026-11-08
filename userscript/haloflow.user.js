@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaloFlow 双语翻译
 // @namespace    haloflow
-// @version      2.1.7
+// @version      2.1.8
 // @description  AI 双语翻译：划词浮窗 + 整页替换/双语 + 悬浮球 + 三套方案（油猴完全体）
 // @author       HaloFlow
 // @homepageURL  https://relay.example.com/panel
@@ -784,7 +784,7 @@
           el.removeAttribute('data-haloflow-out');
         }
         if (el.getAttribute('aria-hidden') === 'true') { bump('aria'); return; }
-        if (!isVisible(el)) { reject('hidden', (el.innerText || '').slice(0, 40)); return; }
+        if (!isVisible(el)) { reject('hidden', (el.textContent || el.innerText || '').slice(0, 40)); return; }
         const t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
         if (!acceptText(t, 3)) { reject('rejectText', t); return; }
         if (el.querySelector('svg style, style, script')) { bump('style'); return; }
@@ -854,7 +854,10 @@
         const p = n.parentElement;
         if (!p) continue;
         if (SKIP_TAGS.has(p.tagName)) continue;
-        try { if (p.closest(skipSel)) continue; } catch (_) { continue; }
+        try {
+          if (p.closest(skipSel)) continue;
+          if (p.closest('[data-haloflow-done]')) continue;   // 已翻过的别再收一遍
+        } catch (_) { continue; }
         const raw = n.nodeValue || '';
         if (!raw.trim()) continue;
         const t = raw.replace(/\s+/g, ' ').trim();

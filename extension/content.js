@@ -573,7 +573,7 @@
           el.removeAttribute('data-haloflow-out');
         }
         if (el.getAttribute('aria-hidden') === 'true') { bump('aria'); return; }
-        if (!isVisible(el)) { reject('hidden', (el.innerText || '').slice(0, 40)); return; }
+        if (!isVisible(el)) { reject('hidden', (el.textContent || el.innerText || '').slice(0, 40)); return; }
 
         const t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
         if (!acceptText(t, 3)) { reject('rejectText', t); return; }
@@ -659,7 +659,10 @@
         const p = n.parentElement;
         if (!p) continue;
         if (SKIP_TAGS.has(p.tagName)) continue;
-        try { if (p.closest(skipSel)) continue; } catch (_) { continue; }
+        try {
+          if (p.closest(skipSel)) continue;
+          if (p.closest('[data-haloflow-done]')) continue;   // 已翻过的别再收一遍
+        } catch (_) { continue; }
         if (p.closest('.haloflow-trans')) continue;
         const raw = n.nodeValue || '';
         if (!raw.trim()) continue;
