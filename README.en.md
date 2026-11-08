@@ -20,6 +20,14 @@ Backend is any OpenAI-compatible `/chat/completions` endpoint: DeepSeek, GLM, Ki
 
 ---
 
+### ⚡ Speed
+
+**Fastest with DeepSeek V4.1-Flash (`deepseek-flash`).**
+
+> Measured 2026-11: a 119-block SCP article finishes in **~2 seconds with a warm cache**; 15~25 seconds cold.
+> The catch is that V4 enables thinking by default, which eats the whole output budget — HaloFlow explicitly sends
+> `thinking: {"type":"disabled"}`, cutting the same request's stream from 70 KB down to 1.5 KB.
+
 ## Features
 
 ### Translation
