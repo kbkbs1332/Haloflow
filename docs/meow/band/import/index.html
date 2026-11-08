@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07060f">
+<title>本地曲库 · 猫猫乐队</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .drop{
+    display:block;border:1px dashed rgba(123,255,230,.35);border-radius:16px;
+    padding:22px 14px;margin:14px 0 10px;cursor:pointer;background:rgba(123,255,230,.04);
+    transition:.2s;text-align:center
+  }
+  .drop:active{transform:scale(.99)}
+  .drop b{display:block;font-size:13px;margin-bottom:6px}
+  .drop small{display:block;font-size:9.5px;color:rgba(244,241,255,.4);line-height:1.6}
+  .drop input{display:none}
+  .bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden;margin:10px 0 4px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7bffe6,#ffe27a);transition:width .2s}
+  .stat{font:700 9px/1.5 ui-monospace,Menlo,monospace;color:rgba(244,241,255,.45);letter-spacing:.06em;min-height:14px}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
+  .meta div{padding:8px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+  .meta small{display:block;font:700 7.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:rgba(244,241,255,.35);margin-bottom:4px}
+  .meta b{font:900 13px/1 ui-monospace,Menlo,monospace;color:#7bffe6}
+  .bpmRow{display:flex;align-items:center;gap:8px;margin:8px 0}
+  .bpmRow span{font:700 10px/1 ui-monospace,Menlo,monospace;color:rgba(244,241,255,.5)}
+  .bpmRow input{flex:1;padding:8px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#fff;font:800 12px/1 ui-monospace,Menlo,monospace;outline:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage" style="opacity:.35"></canvas>
+  <div id="vignette"></div>
+  <div class="screen">
+    <div class="panel">
+      <div class="tag">LOCAL STEMS · 只在本机处理</div>
+      <h2 style="font-size:24px">本地曲库</h2>
+      <p class="lead">选一首你自己的歌，浏览器会在本地把它拆成<br><b style="color:#7bffe6">鼓 / 贝斯 / 和弦 / 旋律</b> 四条轨，不上传服务器。</p>
+
+      <label class="drop" id="drop">
+        <b>点这里选音频文件</b>
+        <small>mp3 / flac / wav / m4a · 最长 3 分钟<br>分离是快速版（瞬态+频段），不是 AI 分轨</small>
+        <input id="file" type="file" accept="audio/*">
+      </label>
+
+      <div class="bar"><i id="prog"></i></div>
+      <div class="stat" id="stat">等一首歌喵</div>
+
+      <div id="info" class="hide">
+        <div class="meta">
+          <div><small>时长</small><b id="mDur">—</b></div>
+          <div><small>估计 BPM</small><b id="mBpm">—</b></div>
+          <div><small>鼓轨音符</small><b id="mDrum">—</b></div>
+          <div><small>总音符</small><b id="mAll">—</b></div>
+        </div>
+        <div class="bpmRow">
+          <span>BPM</span>
+          <input id="bpmInput" type="number" min="60" max="200" step="1" value="120">
+        </div>
+        <div class="diffRow" id="diffRow">
+          <button data-diff="easy">轻松</button>
+          <button data-diff="normal" class="on">普通</button>
+          <button data-diff="hard">硬核</button>
+        </div>
+        <button id="startBtn" class="btn">开 始 演 奏</button>
+        <button id="reBtn" class="btn ghost">重 新 选 歌</button>
+      </div>
+
+      <a class="btn ghost" href="/band/" style="margin-top:8px">返 回 乐 队</a>
+      <div class="footNote">分离结果只存这台设备的 IndexedDB · 换设备要重新选歌</div>
+    </div>
+  </div>
+</div>
+<script src="../sep.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var data = null, diff = "normal", busy = false;
+
+  $("file").addEventListener("change", async function(e){
+    var f = e.target.files && e.target.files[0];
+    if (!f || busy) return;
+    if (f.size > 40 * 1024 * 1024) { $("stat").textContent = "文件超过 40MB，先裁一段再来喵"; return; }
+    busy = true;
+    $("info").classList.add("hide");
+    $("prog").style.width = "8%";
+    $("stat").textContent = "解码…";
+    try {
+      data = await BandSep.analyze(f, function(msg){
+        $("stat").textContent = msg;
+        $("prog").style.width = Math.min(92, parseFloat($("prog").style.width || "8") + 12) + "%";
+      });
+      $("prog").style.width = "100%";
+      $("stat").textContent = "分好了喵 · 四条轨都在本机";
+      $("mDur").textContent = data.duration.toFixed(0) + "s";
+      $("mBpm").textContent = data.bpm;
+      $("bpmInput").value = data.bpm;
+      $("mDrum").textContent = data.notes.normal.filter(function(n){ return n.lane === 0; }).length;
+      $("mAll").textContent = data.notes.normal.length;
+      $("info").classList.remove("hide");
+    } catch (err) {
+      console.error(err);
+      $("stat").textContent = "分离失败：" + (err && err.message ? err.message : "未知错误");
+      $("prog").style.width = "0";
+    }
+    busy = false;
+  });
+
+  $("diffRow").addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b) return;
+    diff = b.dataset.diff;
+    Array.prototype.forEach.call(this.querySelectorAll("button"), function(x){ x.classList.toggle("on", x === b); });
+    if (data) {
+      $("mAll").textContent = data.notes[diff].length;
+      $("mDrum").textContent = data.notes[diff].filter(function(n){ return n.lane === 0; }).length;
+    }
+  });
+
+  $("startBtn").addEventListener("click", async function(){
+    if (!data) return;
+    data.bpm = Math.max(60, Math.min(200, parseFloat($("bpmInput").value) || data.bpm));
+    $("stat").textContent = "存到本机…";
+    try {
+      await BandSep.saveCustom(data);
+      location.href = "/band/?custom=1&diff=" + diff;
+    } catch (e) {
+      $("stat").textContent = "存储失败：" + (e && e.message ? e.message : "");
+    }
+  });
+
+  $("reBtn").addEventListener("click", function(){
+    data = null;
+    $("info").classList.add("hide");
+    $("prog").style.width = "0";
+    $("stat").textContent = "再选一首喵";
+    $("file").value = "";
+  });
+
+  // 背景一点点星
+  var cv = $("stage"), c = cv.getContext("2d");
+  function resize(){ cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; }
+  resize(); addEventListener("resize", resize);
+  var stars = [];
+  for (var i = 0; i < 60; i++) stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.6 + .3, a: Math.random() * .5 + .1 });
+  (function loop(){
+    requestAnimationFrame(loop);
+    c.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    c.clearRect(0,0,innerWidth,innerHeight);
+    for (var s of stars){
+      c.globalAlpha = s.a;
+      c.fillStyle = "#cfe9ff";
+      c.beginPath(); c.arc(s.x * innerWidth, s.y * innerHeight, s.r, 0, 6.2832); c.fill();
+    }
+  })();
+})();
+</script>
+</body>
+</html>

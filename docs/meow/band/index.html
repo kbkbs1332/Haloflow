@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<script>window.MEOW_WS_BASE = "wss://kbcraft.cn:3090/m3ow";</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07060f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>猫猫乐队 · NEKO BAND</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B5%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+  <div id="vignette"></div>
+
+  <div id="hud">
+    <div class="top">
+      <div class="scoreBox">
+        <small>SCORE</small><b id="score">0</b><i id="accTxt">—</i>
+      </div>
+      <div class="topRight">
+        <div id="teamStrip" class="teamStrip"></div>
+        <div class="icons">
+          <button id="muteBtn" class="iconBtn on" aria-label="声音">♪</button>
+          <button id="clickBtn" class="iconBtn on" aria-label="节拍器">♩</button>
+          <button id="pauseBtn" class="iconBtn" aria-label="暂停">❚❚</button>
+          <a href="/" class="iconBtn" aria-label="返回游戏厅">←</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="gaugeBox" class="gaugeBox">
+      <div class="gaugeHead"><span id="gaugeLabel">合奏槽</span><b id="gaugeNum">50</b></div>
+      <div class="gaugeBar"><i id="gaugeFill"></i><u id="gaugeMark"></u></div>
+    </div>
+
+    <div id="combo" class="combo"><b>0</b><span>COMBO</span></div>
+  </div>
+
+  <div id="countdown" class="countdown hide"><span id="countNum">3</span><small id="countSong"></small></div>
+  <div id="toast" class="toast"></div>
+
+  <!-- 主菜单 -->
+  <div id="menu" class="screen">
+    <div class="panel">
+      <div class="tag">NEKO BAND · 03</div>
+      <h1>猫猫<span>乐队</span></h1>
+      <p class="lead">四条轨就是四个声部：鼓、贝斯、和弦、旋律。<br>谁打谁发声，漏了那一声就真的没了喵。</p>
+
+      <div class="songs" id="songList"></div>
+
+      <div class="diffRow" id="diffRow">
+        <button data-diff="easy">轻松</button>
+        <button data-diff="normal" class="on">普通</button>
+        <button data-diff="hard">硬核</button>
+      </div>
+
+      <button id="soloBtn" class="btn">单 人 开 演</button>
+      <button id="onlineBtn" class="btn ghost">联 机 合 奏</button>
+      <button id="calibBtn" class="btn ghost">延 迟 校 准 <small id="offsetTxt">0ms</small></button>
+      <a id="importBtn" class="btn ghost" href="/band/import/">本 地 曲 库 · 分 轨</a>
+      <div class="footNote">键盘：D F J K 四轨 · 触屏直接点轨道</div>
+    </div>
+  </div>
+
+  <!-- 联机大厅 -->
+  <div id="lobby" class="screen hide">
+    <div class="panel">
+      <div class="tag">ONLINE · 2~4 人</div>
+      <h2>合奏排练室</h2>
+      <div class="nameRow">
+        <input id="nameInput" maxlength="12" placeholder="你的猫名" autocomplete="off">
+        <button id="nameBtn" class="mini">改名</button>
+      </div>
+      <div class="songs small" id="songList2"></div>
+      <div class="diffRow" id="diffRow2">
+        <button data-diff="easy">轻松</button>
+        <button data-diff="normal" class="on">普通</button>
+        <button data-diff="hard">硬核</button>
+      </div>
+      <div class="players" id="lobbyPlayers"></div>
+      <div id="lobbyMsg" class="lobbyMsg">正在连排练室…</div>
+      <button id="readyBtn" class="btn">准 备 好 了</button>
+      <button id="leaveBtn" class="btn ghost">离 开</button>
+    </div>
+  </div>
+
+  <!-- 结算 -->
+  <div id="result" class="screen hide">
+    <div class="panel">
+      <div class="tag" id="resultTag">RESULT</div>
+      <div class="rank" id="rankBig">S</div>
+      <h2 id="resultTitle">演出结束喵</h2>
+      <div class="resultGrid">
+        <div><small>得分</small><b id="finalScore">0</b></div>
+        <div><small>准确率</small><b id="finalAcc">0%</b></div>
+        <div><small>最大连击</small><b id="finalCombo">0</b></div>
+        <div><small>漏拍</small><b id="finalMiss">0</b></div>
+      </div>
+      <div id="resultPlayers" class="resultPlayers"></div>
+      <button id="againBtn" class="btn">再 来 一 首</button>
+      <button id="backBtn" class="btn ghost">回 大 厅</button>
+    </div>
+  </div>
+
+  <!-- 校准 -->
+  <div id="calib" class="screen hide">
+    <div class="panel">
+      <div class="tag">LATENCY CALIBRATION</div>
+      <h2>跟着节拍点 12 下</h2>
+      <p class="lead">听到「哒」就点一下大按钮，别提前，也别抢拍喵。</p>
+      <div id="calibDot" class="calibDot"></div>
+      <button id="calibTap" class="btn calibTap">点 我</button>
+      <div class="calibInfo"><span id="calibCount">0 / 12</span><b id="calibResult">—</b></div>
+      <button id="calibSave" class="btn ghost">保 存 并 返 回</button>
+    </div>
+  </div>
+
+  <!-- 暂停 -->
+  <div id="pauseScr" class="screen hide">
+    <div class="panel small">
+      <div class="tag">PAUSED</div>
+      <h2>先歇一会儿喵</h2>
+      <button id="resumeBtn" class="btn">继 续</button>
+      <button id="quitBtn" class="btn ghost">结 束 本 局</button>
+    </div>
+  </div>
+</div>
+
+<script src="songs.js"></script>
+<script src="sep.js"></script>
+<script src="audio.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

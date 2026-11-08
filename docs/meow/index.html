@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<script>window.MEOW_WS_BASE = "wss://kbcraft.cn:3090/m3ow";</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#080a1a">
+<meta name="description" content="喵喵游戏厅 · 一屋子可以马上开玩的小游戏。联机接鱼、猫爪炮台，还有更多在装修喵。">
+<title>喵喵游戏厅 · NEKO ARCADE</title>
+<link rel="stylesheet" href="/hub.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%B1%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="aurora a1"></div>
+<div class="aurora a2"></div>
+<div class="aurora a3"></div>
+
+<main id="shell">
+  <header class="top">
+    <a class="brand" href="/">
+      <span class="mark">=^･ω･^=</span>
+      <span class="bname">NYA LABS<small>小游戏分部</small></span>
+    </a>
+    <div class="topRight">
+      <span class="live"><i></i><b id="onlineTotal">—</b> 只猫在线</span>
+      <button id="soundHub" class="mini" title="背景音效">♪</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="kicker"><span>ARCADE / 2026</span></div>
+    <h1>喵喵<span class="grad">游戏厅</span></h1>
+    <p class="lead">一屋子点开就能玩的小游戏。<br class="onlyPhone">联机抢鱼、躲弹幕，随便挑一只开打喵。</p>
+    <div class="heroMeta">
+      <span>免安装</span><span>手机 / 电脑</span><span>随时开一局</span>
+    </div>
+
+  </section>
+
+  <section id="grid" class="grid">
+    <!-- 1 -->
+    <article class="card c-fish" data-game="fish">
+      <div class="preview"><canvas class="pv" data-pv="fish"></canvas><div class="pvVeil"></div></div>
+      <div class="body">
+        <div class="row">
+          <h2>喵喵码头<small>MEOW FISH</small></h2>
+          <span class="stat" id="fishStat">联机中</span>
+        </div>
+        <p>一屏猫猫抢鱼喵！金鱼、彩虹鱼、宝箱鱼，还有偷偷混进来的炸弹和时间停止鱼。</p>
+        <div class="tags"><i>实时同屏</i><i>最多 24 人</i><i>180 秒一局</i><i class="hot">新：时停</i></div>
+      </div>
+      <a class="go" href="/fish/"><span>进 码 头</span><b>→</b></a>
+    </article>
+
+    <!-- 2 -->
+    <article class="card c-blaster" data-game="blaster">
+      <div class="preview"><canvas class="pv" data-pv="blaster"></canvas><div class="pvVeil"></div></div>
+      <div class="body">
+        <div class="row">
+          <h2>猫爪炮台<small>NEKO BLASTER</small></h2>
+          <span class="stat">单机</span>
+        </div>
+        <p>银河渔场告急！驾驶猫耳战机一路突突，捡武器、擦弹、放喵炮，最后把深海利维坦打回老家。</p>
+        <div class="tags"><i>竖版弹幕</i><i>BOSS 三阶段</i><i>手机拖拽</i><i class="hot">新上架</i></div>
+      </div>
+      <a class="go" href="/blaster/"><span>开 打</span><b>→</b></a>
+    </article>
+
+    <!-- 3 -->
+    <article class="card c-band" data-game="band">
+      <div class="preview"><canvas class="pv" data-pv="band"></canvas><div class="pvVeil"></div></div>
+      <div class="body">
+        <div class="row">
+          <h2>猫猫乐队<small>NEKO BAND</small></h2>
+          <span class="stat" id="bandStat">合奏中</span>
+        </div>
+        <p>四条轨就是四个声部：鼓、贝斯、和弦、旋律。谁打谁发声，漏了那一声就真的没了。</p>
+        <div class="tags"><i>2~4 人合作</i><i>单人可玩</i><i>合成音乐</i><i class="hot">新上架</i></div>
+      </div>
+      <a class="go" href="/band/"><span>进 排 练 室</span><b>→</b></a>
+    </article>
+
+    <!-- 4 -->
+    <article class="card c-worm" data-game="worm">
+      <div class="preview"><canvas class="pv" data-pv="worm"></canvas><div class="pvVeil"></div></div>
+      <div class="body">
+        <div class="row">
+          <h2>猫猫虫<small>WORMY</small></h2>
+          <span class="stat" id="wormStat">草地中</span>
+        </div>
+        <p>同一片草地上抢叶子，吃多了会变长。头撞到别人身体、或者撞墙，就变成别人的午餐喵。</p>
+        <div class="tags"><i>实时同屏</i><i>最多 8 条</i><i>滑动转向</i><i class="hot">新上架</i></div>
+      </div>
+      <a class="go" href="/worm/"><span>进 草 地</span><b>→</b></a>
+    </article>
+
+  </section>
+
+  <footer>
+    <div>© 2026 NYA LABS · <span id="footHost">kbcraft.cn:7777</span></div>
+    <div class="footRight">全部游戏都是手搓的喵 · <a href="/fish/">码头</a> / <a href="/blaster/">炮台</a> / <a href="/band/">乐队</a> / <a href="/worm/">猫猫虫</a></div>
+  </footer>
+</main>
+
+<div id="toastHub"></div>
+<script src="/hub.js"></script>
+</body>
+</html>

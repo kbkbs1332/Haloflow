@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<script>window.MEOW_WS_BASE = "wss://kbcraft.cn:3090/m3ow";</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0b1026">
+<title>喵喵码头 · 联机接鱼</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <canvas id="ci"></canvas>
+  <canvas id="gl"></canvas>
+
+  <div id="hud">
+    <div class="chip"><small>SCORE</small><b id="score">0</b></div>
+    <div class="chip"><small>TIME</small><b id="time">180</b></div>
+    <div class="chip"><small>LIVES</small><div id="lives">♥♥♥</div></div>
+  </div>
+  <div id="comboBadge"></div>
+  <div id="buffPanel" class="hide">
+    <div class="buffHead">BUFF</div>
+    <div id="effectBadge"></div>
+    <div id="relicBar"></div>
+  </div>
+
+  <div id="boardBox">
+    <div class="boardTitle">积分榜 <span id="online">0</span> 只猫</div>
+    <div id="board"></div>
+  </div>
+
+  <div id="toolbar">
+    <button id="soundBtn" class="tbtn" title="声音">♪</button>
+    <button id="guideBtn" class="tbtn">鱼谱</button>
+    <button id="skinBtn" class="tbtn">皮肤</button>
+    <button class="tbtn emo" data-emote="1">喵</button>
+    <button class="tbtn emo" data-emote="2">好耶</button>
+    <button class="tbtn emo" data-emote="3">呜呜</button>
+  </div>
+
+  <a id="backHub" href="/">← 游戏厅</a>
+
+  <div id="lobby" class="overlay">
+    <div class="card">
+      <div class="face">=^･ω･^=</div>
+      <h1>喵喵<span>码头</span></h1>
+      <p class="sub">一屏人猫同屏抢鱼喵！<br>金鱼 +50、彩虹 +100 · <b>炸弹扣分</b><br>道具：星星双倍 / 泡泡护盾 / 冰鱼减速<br>损友：墨鱼糊脸 / 偷分蟹 / 水母电人</p>
+      <label class="lbl">你的猫名</label>
+      <input id="name" maxlength="12" placeholder="输入猫名（最多 12 字）" autocomplete="off">
+      <label class="lbl">选个皮肤</label>
+      <div id="skinGrid" class="skinGrid"></div>
+      <div id="lobbyMsg" class="lobbyMsg"></div>
+      <button id="joinBtn" class="btn">进 码 头</button>
+      <div class="hint">拖动 / 方向键 · 灯笼鱼 +25 · 飞鱼 +35 · 电鳗 +40 · 宝箱鱼 +150</div>
+    </div>
+  </div>
+
+  <div id="skinPanel" class="overlay hide">
+    <div class="card small">
+      <div class="face">换 皮 肤</div>
+      <h2>今天想当哪只猫？</h2>
+      <div id="skinGrid2" class="skinGrid"></div>
+      <button id="skinClose" class="btn ghost">回 码 头</button>
+    </div>
+  </div>
+
+  <div id="deadBox" class="overlay hide">
+    <div class="card small">
+      <div class="face">=︿･︿=</div>
+      <h2>被炸晕了喵…</h2>
+      <p class="sub" id="deadText">5 秒后自动复活</p>
+    </div>
+  </div>
+
+  <div id="roundBox" class="overlay hide">
+    <div class="card">
+      <div class="face">本 局 结 束</div>
+      <h1 id="roundTitle">收工喵！</h1>
+      <div id="roundBoard" class="roundBoard"></div>
+      <p class="hint" id="roundHint">8 秒后自动开下一局</p>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="timeStopFx">
+    <div class="tsClock"></div>
+    <div class="tsTitle">THE WORLD</div>
+    <div class="tsSub">时 停</div>
+  </div>
+  <div id="tsEdge"></div>
+
+  <div id="guide" class="overlay hide">
+    <div class="card guideCard">
+      <div class="face">鱼 谱 · 意图图鉴</div>
+      <h2>看头顶图标认功能</h2>
+      <div class="guideList">
+        <div class="grow"><b class="ic score">+</b><div><strong>得分鱼</strong><span>沙丁 +10 · 小丑 +20 · 河豚 +15 · 闪电 +30 · 金鱼 +50 · 彩虹 +100 · 灯笼 +25 · 飞鱼 +35 · 电鳗 +40</span></div></div>
+        <div class="grow"><b class="ic bomb">!</b><div><strong>炸弹</strong><span>普通炸弹 / 高速炸弹：-25 分 + 掉 1 命；有护盾先破盾</span></div></div>
+        <div class="grow"><b class="ic power">星</b><div><strong>道具鱼</strong><span>星 = 双倍 10s · 盾 = 挡一次炸弹 · 冰 = 全场减速 6s · 磁 = 8s 吸鱼 · 运 = 接下来 5 条 +50%</span></div></div>
+        <div class="grow"><b class="ic grief">墨</b><div><strong>损友鱼</strong><span>墨 = 糊住对手 3s · 偷 = 从所有对手各偷 5% 分 · 电 = 电麻随机一人 2s</span></div></div>
+        <div class="grow"><b class="ic power">停</b><div><strong>时停鱼</strong><span>一局只出现 5 条；接住后全场时停 3.5s，并收走屏幕上所有鱼</span></div></div>
+        <div class="grow"><b class="ic treasure">宝</b><div><strong>宝箱鱼</strong><span>+150 分，并开出随机遗物：鱼骨项链 / 连击手套 / 铁锅盖 / 墨镜 / 防电靴</span></div></div>
+      </div>
+      <div class="hint">遗物本局有效，死亡不会丢；重复宝箱 +100 分</div>
+      <button id="guideClose" class="btn ghost">回 码 头</button>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

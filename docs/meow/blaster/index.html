@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07060f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>猫爪炮台 · NEKO BLASTER</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%BE%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<div id="app">
+  <canvas id="stage"></canvas>
+  <div id="vignette"></div>
+
+  <div id="hud">
+    <div class="hudTop">
+      <div class="scoreBox">
+        <small>SCORE</small>
+        <b id="score">0</b>
+        <i id="best">BEST 0</i>
+      </div>
+      <div class="rightBox">
+        <div id="hearts" class="hearts"></div>
+        <div class="icons">
+          <button id="pauseBtn" class="iconBtn" aria-label="暂停">❚❚</button>
+          <button id="soundBtn" class="iconBtn on" aria-label="声音">♪</button>
+          <a id="homeBtn" class="iconBtn" href="/" aria-label="返回游戏厅">←</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="hudBottom">
+      <div class="wbox">
+        <div class="wrow"><b id="wname">猫爪脉冲</b><span id="wlv">Lv.1</span></div>
+        <div class="ebar"><i id="ebar"></i></div>
+        <div id="grazeTxt">擦弹 0 · 满槽送喵炮</div>
+      </div>
+      <div id="combo" class="combo">×1</div>
+    </div>
+  </div>
+
+  <button id="bombBtn" class="bombBtn" aria-label="喵炮">
+    <span class="bIcon">喵</span><b id="bombNum">3</b>
+  </button>
+
+  <div id="toastB" class="toastB"></div>
+
+  <!-- 开始 -->
+  <div id="menu" class="screen">
+    <div class="panel">
+      <div class="tag">NEKO BLASTER · 01</div>
+      <h1>猫爪<span>炮台</span></h1>
+      <p class="lead">银河渔场告急，坏鱼成群结队往下掉。<br>驾驶猫耳战机一路突突，把深海利维坦轰回老家喵。</p>
+
+      <div class="legend">
+        <div class="lg pulse"><i></i><b>猫爪脉冲</b><span>稳，指哪打哪</span></div>
+        <div class="lg spread"><i></i><b>樱花散射</b><span>糊脸用，越近越疼</span></div>
+        <div class="lg laser"><i></i><b>激光逗猫棒</b><span>穿透，一直烧</span></div>
+        <div class="lg homing"><i></i><b>追尾鱼雷</b><span>追着咬，不用瞄</span></div>
+      </div>
+
+      <div class="howto">
+        <div><kbd>拖</kbd><span>按住拖动，战机跟着手走</span></div>
+        <div><kbd>auto</kbd><span>自动开火，专心躲弹幕</span></div>
+        <div><kbd>喵炮</kbd><span>清屏，擦弹攒能量</span></div>
+      </div>
+
+      <div class="bestLine">历史最佳 <b id="menuBest">0</b></div>
+      <button id="startBtn" class="btn">开 打</button>
+      <div class="footNote">键盘：WASD / 方向键移动，B 放喵炮，P 暂停</div>
+    </div>
+  </div>
+
+  <!-- 暂停 -->
+  <div id="pauseScr" class="screen hide">
+    <div class="panel small">
+      <div class="tag">PAUSED</div>
+      <h2>先歇一会儿喵</h2>
+      <button id="resumeBtn" class="btn">继 续</button>
+      <button id="restartBtn" class="btn ghost">重 开</button>
+      <a class="btn ghost" href="/">回游戏厅</a>
+    </div>
+  </div>
+
+  <!-- 结束 -->
+  <div id="overScr" class="screen hide">
+    <div class="panel">
+      <div class="tag" id="overTag">RESULT</div>
+      <h2 id="overTitle">被鱼打倒了喵…</h2>
+      <div class="resultGrid">
+        <div><small>本局得分</small><b id="finalScore">0</b></div>
+        <div><small>最高纪录</small><b id="finalBest">0</b></div>
+        <div><small>到达波次</small><b id="finalWave">1</b></div>
+        <div><small>擦弹</small><b id="finalGraze">0</b></div>
+      </div>
+      <div id="newRecord" class="newRecord hide">✦ 新 纪 录 ✦</div>
+      <button id="againBtn" class="btn">再 来 一 局</button>
+      <a class="btn ghost" href="/">回游戏厅</a>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
