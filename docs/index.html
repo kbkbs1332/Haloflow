@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HaloFlow · AI 双语网页翻译</title>
+<meta name="description" content="AI 网页双语翻译：整页替换 / 双语对照、划词、悬浮球、三套方案、本地缓存。支持 Chrome/Edge 扩展与 Tampermonkey 用户脚本，后端接任意 OpenAI 兼容接口。">
+<style>
+  :root{
+    --cyan:#38f0d8; --violet:#7c5cff; --gold:#ffd23f;
+    --bg0:#06080f; --bg1:#0d1220; --line:rgba(120,160,210,.18);
+    --fg:#e8f4ff; --dim:#8fa6bf;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 50% -10%, #12203a 0%, var(--bg0) 55%) fixed;
+    color:var(--fg);
+    font:16px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans CJK SC",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* 星轨背景 */
+  .stars{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5}
+  .stars i{position:absolute;border-radius:50%;background:#9fd8ff;
+    box-shadow:0 0 6px rgba(159,216,255,.9);animation:tw 4s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.25}50%{opacity:.9}}
+
+  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:64px 22px 80px}
+
+  header{text-align:center;margin-bottom:56px}
+  .logo{
+    width:76px;height:76px;margin:0 auto 22px;border-radius:50%;position:relative;
+    background:linear-gradient(135deg,rgba(56,240,216,.15),rgba(124,92,255,.15));
+    border:1px solid rgba(90,230,255,.35);
+    box-shadow:0 0 40px rgba(56,240,216,.18), inset 0 0 24px rgba(124,92,255,.18);
+  }
+  .logo::after{
+    content:"";position:absolute;inset:26px;border-radius:50%;
+    border:2px solid rgba(56,240,216,.9);border-top-color:rgba(255,255,255,.9);
+    animation:spin 6s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  h1{font-size:clamp(30px,7vw,44px);letter-spacing:.5px;
+    background:linear-gradient(120deg,var(--cyan),var(--violet) 70%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;}
+  .tag{margin-top:12px;color:var(--dim);font-size:15px}
+  .badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+  .badges img{height:20px}
+
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;padding:13px 24px;border-radius:12px;
+    text-decoration:none;font-weight:600;font-size:15px;transition:.18s;
+    border:1px solid transparent;
+  }
+  .btn.primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#06121a}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(56,240,216,.25)}
+  .btn.ghost{border-color:rgba(120,160,210,.3);color:var(--fg);background:rgba(255,255,255,.04)}
+  .btn.ghost:hover{background:rgba(255,255,255,.09)}
+
+  h2{font-size:20px;margin:64px 0 20px;display:flex;align-items:center;gap:10px}
+  h2::before{content:"";width:4px;height:18px;border-radius:2px;
+    background:linear-gradient(180deg,var(--cyan),var(--violet))}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .card{
+    position:relative;padding:18px 18px 16px;border-radius:14px;
+    background:linear-gradient(rgba(13,18,32,.92),rgba(13,18,32,.92)) padding-box,
+               linear-gradient(135deg,rgba(56,240,216,.5),rgba(124,92,255,.35)) border-box;
+    border:1px solid transparent;
+  }
+  .card h3{font-size:15px;margin-bottom:6px}
+  .card p{font-size:13.5px;color:var(--dim);line-height:1.65}
+
+  ol.steps{list-style:none;counter-reset:s}
+  ol.steps li{counter-increment:s;position:relative;padding:12px 0 12px 46px;border-bottom:1px dashed var(--line)}
+  ol.steps li:last-child{border-bottom:0}
+  ol.steps li::before{
+    content:counter(s);position:absolute;left:0;top:12px;width:28px;height:28px;
+    display:grid;place-items:center;border-radius:50%;font-size:13px;font-weight:700;color:#06121a;
+    background:linear-gradient(135deg,var(--cyan),var(--violet));
+  }
+  code{background:rgba(255,255,255,.07);padding:2px 6px;border-radius:5px;font-size:.9em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#a8e6ff}
+
+  footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--line);
+    text-align:center;color:var(--dim);font-size:13px}
+  footer a{color:var(--cyan);text-decoration:none}
+  .en{font-size:13px;color:var(--dim);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo"></div>
+    <h1>HaloFlow</h1>
+    <p class="tag">AI 双语网页翻译 · 保留原样式的整页翻译</p>
+    <div class="badges">
+      <img src="https://img.shields.io/badge/version-2.1.6-38f0d8?style=flat-square" alt="version">
+      <img src="https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square" alt="license">
+      <img src="https://img.shields.io/github/v/release/kbkbs1332/Haloflow?style=flat-square&color=ffd23f" alt="release">
+    </div>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/kbkbs1332/Haloflow/releases/latest">下载扩展 / 脚本</a>
+      <a class="btn ghost" href="https://github.com/kbkbs1332/Haloflow">查看源码</a>
+    </div>
+  </header>
+
+  <h2>它能做什么</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>整页翻译，两种模式</h3>
+      <p>替换模式直接换掉原文，双语模式用伪元素在原文下方追加译文——不插 DOM 节点，grid / flex 布局不会错位。</p>
+    </div>
+    <div class="card">
+      <h3>划词翻译</h3>
+      <p>选中一段文字，浮窗里出译文，不用整页翻。</p>
+    </div>
+    <div class="card">
+      <h3>吸边悬浮球</h3>
+      <p>拖到屏幕边缘自动吸附，点开是菜单：翻译 / 切模式 / 恢复原文 / 诊断 / 设置。</p>
+    </div>
+    <div class="card">
+      <h3>三套独立方案</h3>
+      <p>每套方案各有自己的 Base URL、Key、模型、提示词和目标语言，能重命名、能整包导出导入。</p>
+    </div>
+    <div class="card">
+      <h3>快，而且省</h3>
+      <p>流式输出边收边写，长短文本分组并发，超长段落自动拆句。译过的句子本地缓存，重开页面直接复用。</p>
+    </div>
+    <div class="card">
+      <h3>动态内容跟得上</h3>
+      <p>无限滚动加载的新内容会自动补翻；支持 iframe 联动；随时「恢复原文」并掐断在途请求。</p>
+    </div>
+    <div class="card">
+      <h3>出问题查得到</h3>
+      <p>一键诊断：这一页收到多少段、哪些被跳过、为什么被跳过——不用再靠猜。</p>
+    </div>
+    <div class="card">
+      <h3>实验性：图片翻译</h3>
+      <p>点选页面图片，多模态模型识别文字并给框，canvas 采样背景色自动嵌字。</p>
+    </div>
+  </div>
+
+  <h2>怎么装</h2>
+  <ol class="steps">
+    <li>去 <a href="https://github.com/kbkbs1332/Haloflow/releases/latest" style="color:var(--cyan)">Releases</a> 下载 <code>haloflow.crx</code> 或 <code>haloflow.user.js</code></li>
+    <li>扩展：打开 <code>chrome://extensions</code>（Edge 是 <code>edge://extensions</code>）→ 开启「开发者模式」→ 把 crx 拖进去</li>
+    <li>脚本：<code>haloflow.user.js</code> 拖进 Tampermonkey</li>
+    <li>打开设置，填 <code>Base URL</code>、<code>API Key</code>、<code>模型</code>，然后点「连接测试」</li>
+    <li>回到网页，点悬浮球 → 翻译本页</li>
+  </ol>
+
+  <h2>说明</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>不提供公共服务</h3>
+      <p>需要你自己的 API Key。任何 OpenAI 兼容接口都行：DeepSeek、智谱 GLM、Kimi、OpenAI，或者自己搭中转。</p>
+    </div>
+    <div class="card">
+      <h3>Key 只存在本机</h3>
+      <p>存在浏览器的本地存储里，不上传任何服务器。想集中管理可以部署仓库里的 <code>relay/</code>，把 key 留在服务端。</p>
+    </div>
+  </div>
+
+  <footer>
+    <p>MIT License · <a href="https://github.com/kbkbs1332/Haloflow">GitHub</a> · <a href="https://github.com/kbkbs1332/Haloflow/blob/main/CHANGELOG.md">更新日志</a></p>
+    <p class="en">HaloFlow — AI bilingual web translator. Bring your own API key.</p>
+  </footer>
+</div>
+
+<script>
+  // 星轨：随机撒点
+  (function () {
+    const box = document.getElementById('stars');
+    const n = window.innerWidth < 600 ? 40 : 90;
+    let html = '';
+    for (let i = 0; i < n; i++) {
+      const s = (Math.random() * 2 + 0.6).toFixed(1);
+      html += `<i style="left:${(Math.random()*100).toFixed(2)}%;top:${(Math.random()*100).toFixed(2)}%;width:${s}px;height:${s}px;animation-delay:${(Math.random()*4).toFixed(2)}s"></i>`;
+    }
+    box.innerHTML = html;
+  })();
+</script>
+</body>
+</html>

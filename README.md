@@ -1,5 +1,12 @@
 # HaloFlow · AI 双语网页翻译
 
+[![Version](https://img.shields.io/badge/version-2.1.6-38f0d8?style=flat-square)](https://github.com/kbkbs1332/Haloflow/releases)
+[![License](https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/kbkbs1332/Haloflow?style=flat-square&color=ffd23f)](https://github.com/kbkbs1332/Haloflow/releases)
+[![Chrome](https://img.shields.io/badge/Chrome%20%2F%20Edge-MV3-blue?style=flat-square)](https://github.com/kbkbs1332/Haloflow)
+[![Userscript](https://img.shields.io/badge/Tampermonkey-compatible-orange?style=flat-square)](https://github.com/kbkbs1332/Haloflow)
+
+
 > 中文 · [English](README.en.md)
 
 把网页整页翻成中文，**保留原样式**，支持「直接替换」和「原文+译文双语」两种模式。
