@@ -176,6 +176,19 @@
     @keyframes hfspin { to { transform: rotate(360deg); } }
     .hf-err { color: #ff9bb0; font-size: 12px; }
 
+    /* 高考模式：单词卡 */
+    .hf-dict { display: flex; flex-direction: column; gap: 6px; }
+    .hf-word { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+    .hf-word b { font-size: 15px; color: #eafffb; font-weight: 700; letter-spacing: .01em; }
+    .hf-word span { font-size: 11px; color: #7fa8c8; font-family: ui-monospace, Menlo, monospace; }
+    .hf-sec { border-top: 1px dashed rgba(120,150,190,.18); padding-top: 5px; }
+    .hf-sec-h { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #6d90ac; margin-bottom: 2px; }
+    .hf-row { display: flex; gap: 6px; font-size: 12px; line-height: 1.5; color: #d8ecff; }
+    .hf-tag { flex: 0 0 auto; color: #8ffff0; font-style: italic; font-size: 11px; min-width: 30px; }
+    .hf-row em { color: #9fc0d8; font-style: normal; }
+    .hf-ex { font-size: 12px; line-height: 1.5; color: #cfe6ff; }
+    .hf-ex i { display: block; color: #8ea6bc; font-size: 11px; font-style: normal; }
+
     /* ---------- 悬浮球 ---------- */
     .hf-ball {
       position: fixed;
@@ -335,6 +348,9 @@
     });
   }
 
+  // 高考模式：单词/短语 → 词性 / 词组 / 派生 / 例句（结果按原文缓存）
+  const dictCache = new Map();
+
   function renderPopup(rect, srcText) {
     const r = ensureShadow();
     closePopup();
@@ -347,26 +363,132 @@
         <button class="hf-btn" data-act="both">双语</button>
         <button class="hf-btn" data-act="tgt">译文</button>
         <button class="hf-btn" data-act="src">原文</button>
+        <button class="hf-btn" data-act="dict">高考</button>
         <button class="hf-btn" data-act="close">✕</button>
       </div>
       <div class="hf-body"></div>`;
     const body = popup.querySelector('.hf-body');
 
-    const draw = (translation) => {
-      const m = popup ? state.mode : 'tgt';
+    let view = 'both';
+    let dictData = dictCache.get(srcText) || null;
+    let dictErr = null;
+    let dictBusy = false;
+
+    const markActive = () => {
       popup.querySelectorAll('.hf-btn[data-act]').forEach((b) => {
-        if (['both', 'tgt', 'src'].includes(b.dataset.act)) {
-          b.classList.toggle('active', b.dataset.act === m);
-        }
+        const a = b.dataset.act;
+        if (['both', 'tgt', 'src', 'dict'].includes(a)) b.classList.toggle('active', a === view);
       });
+    };
+
+    const row = (left, right) => {
+      const d = document.createElement('div');
+      d.className = 'hf-row';
+      const t = document.createElement('span');
+      t.className = 'hf-tag';
+      t.textContent = left || '';
+      const c = document.createElement('em');
+      c.textContent = right || '';
+      d.appendChild(t);
+      d.appendChild(c);
+      return d;
+    };
+
+    const section = (title, rows) => {
+      if (!rows.length) return null;
+      const sec = document.createElement('div');
+      sec.className = 'hf-sec';
+      const h = document.createElement('div');
+      h.className = 'hf-sec-h';
+      h.textContent = title;
+      sec.appendChild(h);
+      rows.forEach((x) => sec.appendChild(row(x[0], x[1])));
+      return sec;
+    };
+
+    const drawDict = () => {
       body.innerHTML = '';
-      if (m === 'src' || m === 'both') {
+      if (dictErr) {
+        const d = document.createElement('div');
+        d.className = 'hf-err';
+        d.textContent = '出错了：' + dictErr;
+        body.appendChild(d);
+        return;
+      }
+      if (!dictData) {
+        const d = document.createElement('div');
+        d.className = 'hf-loading';
+        d.innerHTML = '<span class="hf-spin"></span><span>查词中…</span>';
+        body.appendChild(d);
+        return;
+      }
+      const wrap = document.createElement('div');
+      wrap.className = 'hf-dict';
+
+      const head = document.createElement('div');
+      head.className = 'hf-word';
+      const w = document.createElement('b');
+      w.textContent = dictData.word || srcText;
+      head.appendChild(w);
+      if (dictData.phonetic) {
+        const ph = document.createElement('span');
+        ph.textContent = dictData.phonetic;
+        head.appendChild(ph);
+      }
+      wrap.appendChild(head);
+
+      const senses = section('词性 / 释义', (dictData.senses || []).map((s) => [s.pos, s.cn]));
+      if (senses) wrap.appendChild(senses);
+      const phrases = section('词组', (dictData.phrases || []).map((p) => [p.en, p.cn]));
+      if (phrases) wrap.appendChild(phrases);
+      const ders = section('派生', (dictData.derivatives || []).map((d) => [
+        (d.word || '') + (d.pos ? ' ' + d.pos : ''),
+        d.cn
+      ]));
+      if (ders) wrap.appendChild(ders);
+
+      if ((dictData.examples || []).length) {
+        const sec = document.createElement('div');
+        sec.className = 'hf-sec';
+        const h = document.createElement('div');
+        h.className = 'hf-sec-h';
+        h.textContent = '例句';
+        sec.appendChild(h);
+        dictData.examples.forEach((ex) => {
+          const e = document.createElement('div');
+          e.className = 'hf-ex';
+          e.textContent = ex.en || '';
+          if (ex.cn) {
+            const i = document.createElement('i');
+            i.textContent = ex.cn;
+            e.appendChild(i);
+          }
+          sec.appendChild(e);
+        });
+        wrap.appendChild(sec);
+      }
+
+      if (!wrap.querySelector('.hf-sec')) {
+        const d = document.createElement('div');
+        d.className = 'hf-empty';
+        d.textContent = '没查到这个词的条目，换个词试试';
+        wrap.appendChild(d);
+      }
+      body.appendChild(wrap);
+    };
+
+    const draw = (translation) => {
+      if (!popup) return;
+      markActive();
+      if (view === 'dict') return drawDict();
+      body.innerHTML = '';
+      if (view === 'src' || view === 'both') {
         const s = document.createElement('div');
         s.className = 'hf-src';
         s.textContent = srcText;
         body.appendChild(s);
       }
-      if (m === 'tgt' || m === 'both') {
+      if (view === 'tgt' || view === 'both') {
         if (translation === null) {
           const d = document.createElement('div');
           d.className = 'hf-loading';
@@ -386,6 +508,23 @@
       }
     };
 
+    const ensureDict = () => {
+      if (dictData || dictBusy) return;
+      dictBusy = true;
+      dictErr = null;
+      chrome.runtime.sendMessage({ type: 'dict', text: srcText }, (res) => {
+        dictBusy = false;
+        if (!popup) return;
+        if (chrome.runtime.lastError) dictErr = chrome.runtime.lastError.message;
+        else if (!res || !res.ok) dictErr = (res && res.error) || '未知错误';
+        else {
+          dictData = res.dict || {};
+          dictCache.set(srcText, dictData);
+        }
+        if (view === 'dict') drawDict();
+      });
+    };
+
     draw(null);
     r.appendChild(popup);
     placePopup(popup, rect);
@@ -393,10 +532,17 @@
     popup.addEventListener('click', (e) => {
       const b = e.target.closest('.hf-btn');
       if (!b) return;
-      if (b.dataset.act === 'close') return closePopup();
-      if (['both', 'tgt', 'src'].includes(b.dataset.act)) {
-        state.mode = b.dataset.act;
+      const act = b.dataset.act;
+      if (act === 'close') return closePopup();
+      if (['both', 'tgt', 'src'].includes(act)) {
+        view = act;
         draw(translationCache.get(srcText) ?? null);
+        return;
+      }
+      if (act === 'dict') {
+        view = 'dict';
+        draw(null);
+        ensureDict();
       }
     });
 

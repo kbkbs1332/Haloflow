@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         HaloFlow 双语翻译
 // @namespace    haloflow
-// @version      2.1.9
+// @version      2.2.0
 // @description  AI 双语翻译：划词浮窗 + 整页替换/双语 + 悬浮球 + 三套方案（油猴完全体）
 // @author       HaloFlow
 // @homepageURL  https://relay.example.com/panel
@@ -130,6 +130,17 @@
     .hf-dst { color: #f2fbff; }
     .hf-loading { color: #7fa8c8; font-size: 12px; }
     .hf-err { color: #ff9bb0; font-size: 12px; }
+    .hf-dict { display: flex; flex-direction: column; gap: 6px; }
+    .hf-word { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+    .hf-word b { font-size: 15px; color: #eafffb; font-weight: 700; }
+    .hf-word span { font-size: 11px; color: #7fa8c8; font-family: ui-monospace, Menlo, monospace; }
+    .hf-sec { border-top: 1px dashed rgba(120,150,190,.18); padding-top: 5px; }
+    .hf-sec-h { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #6d90ac; margin-bottom: 2px; }
+    .hf-row { display: flex; gap: 6px; font-size: 12px; line-height: 1.5; color: #d8ecff; }
+    .hf-tag { flex: 0 0 auto; color: #8ffff0; font-style: italic; font-size: 11px; min-width: 30px; }
+    .hf-row em { color: #9fc0d8; font-style: normal; }
+    .hf-ex { font-size: 12px; line-height: 1.5; color: #cfe6ff; }
+    .hf-ex i { display: block; color: #8ea6bc; font-size: 11px; font-style: normal; }
 
     .hf-ball { position: fixed; width: 42px; height: 42px; border-radius: 50%; pointer-events: auto;
       cursor: pointer; display: grid; place-items: center; border: 1.5px solid transparent;
@@ -1460,6 +1471,67 @@
     popup = null;
   }
 
+  /* ---------- 高考模式：单词卡 ---------- */
+  const SYS_DICT =
+    '你是高考英语词典引擎。用户会给你一个英文单词或短语，请输出严格 JSON（只输出 JSON，不要 markdown 代码块，不要任何解释）：\n' +
+    '{"word":"原词","phonetic":"/音标/","senses":[{"pos":"n.","cn":"释义"}],"phrases":[{"en":"搭配","cn":"中文"}],"derivatives":[{"word":"派生词","pos":"adj.","cn":"中文"}],"examples":[{"en":"例句","cn":"译文"}]}\n\n' +
+    '要求：\n' +
+    '1）senses：1-3 条，按高考常用度排序；pos 用 n. / v. / adj. / adv. / prep. / conj. / pron. 这类缩写。\n' +
+    '2）phrases：2-4 条高频词组或固定搭配，en 写英文，cn 写中文。\n' +
+    '3）derivatives：2-4 条同根派生词，给出词性和中文意思。\n' +
+    '4）examples：2 条贴近高考语境的例句，en 是英文，cn 是中文翻译。\n' +
+    '5）中文用简体；音标不确定就留空字符串；没有的字段给空数组，不要编造。';
+
+  function parseDict(raw) {
+    let s = String(raw || '').trim();
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+    const a = s.indexOf('{');
+    const b = s.lastIndexOf('}');
+    if (a < 0 || b < a) throw new Error('模型没有返回 JSON 对象');
+    let j;
+    try { j = JSON.parse(s.slice(a, b + 1)); } catch (_) { throw new Error('词典 JSON 解析失败'); }
+    const list = (v) => (Array.isArray(v) ? v : []);
+    const obj = (x) => (typeof x === 'string' ? { cn: x } : (x && typeof x === 'object' ? x : {}));
+    const str = (x) => (typeof x === 'string' ? x : (typeof x === 'number' ? String(x) : ''));
+    return {
+      word: str(j.word),
+      phonetic: str(j.phonetic),
+      senses: list(j.senses).map((x) => { const o = obj(x); return { pos: str(o.pos), cn: str(o.cn) }; }).filter((x) => x.cn),
+      phrases: list(j.phrases).map((x) => { const o = obj(x); return { en: str(o.en), cn: str(o.cn) }; }).filter((x) => x.en || x.cn),
+      derivatives: list(j.derivatives).map((x) => { const o = obj(x); return { word: str(o.word), pos: str(o.pos), cn: str(o.cn) }; }).filter((x) => x.word),
+      examples: list(j.examples).map((x) => { const o = obj(x); return { en: str(o.en), cn: str(o.cn) }; }).filter((x) => x.en)
+    };
+  }
+
+  const dictCache = new Map();
+
+  async function requestDict(text) {
+    const c = cfg();
+    let lastErr = null;
+    for (const ep of visionEndpoints()) {
+      try {
+        const headers = {};
+        if (c.apiKey) headers.Authorization = 'Bearer ' + c.apiKey;
+        if (ep.upstream) headers['X-Halo-Upstream'] = ep.upstream;
+        const body = {
+          model: fixedModel(c.model, c.baseUrl),
+          messages: [
+            { role: 'system', content: SYS_DICT },
+            { role: 'user', content: String(text).slice(0, 200) }
+          ],
+          max_tokens: 1200,
+          temperature: 0.2
+        };
+        if (/deepseek/i.test(c.model || '')) body.thinking = { type: 'disabled' };
+        const j = await postJSON(ep.url, body, headers);
+        const raw = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
+        if (!raw) throw new Error('模型没有返回内容');
+        return parseDict(raw);
+      } catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error('请求失败');
+  }
+
   function showPopup(rect, srcText) {
     const r = ensureShadow();
     closePopup();
@@ -1469,11 +1541,141 @@
       <div class="hf-head">
         <span class="hf-dot"></span>
         <span class="hf-title">HaloFlow</span>
+        <button class="hf-btn active" data-act="tr">译</button>
+        <button class="hf-btn" data-act="dict">高考</button>
         <button class="hf-btn" data-act="close">✕</button>
       </div>
       <div class="hf-src"></div>
-      <div class="hf-dst hf-loading">翻译中…</div>`;
+      <div class="hf-body"></div>`;
     popup.querySelector('.hf-src').textContent = srcText;
+    const body = popup.querySelector('.hf-body');
+
+    let view = 'tr';
+    let dictData = dictCache.get(srcText) || null;
+    let dictErr = null;
+    let dictBusy = false;
+
+    const mark = () => {
+      popup.querySelectorAll('.hf-btn[data-act]').forEach((b) => {
+        const a = b.dataset.act;
+        if (a === 'tr' || a === 'dict') b.classList.toggle('active', a === view);
+      });
+    };
+
+    const row = (left, right) => {
+      const d = document.createElement('div');
+      d.className = 'hf-row';
+      const t = document.createElement('span');
+      t.className = 'hf-tag';
+      t.textContent = left || '';
+      const c = document.createElement('em');
+      c.textContent = right || '';
+      d.appendChild(t); d.appendChild(c);
+      return d;
+    };
+
+    const section = (title, rows) => {
+      if (!rows.length) return null;
+      const sec = document.createElement('div');
+      sec.className = 'hf-sec';
+      const h = document.createElement('div');
+      h.className = 'hf-sec-h';
+      h.textContent = title;
+      sec.appendChild(h);
+      rows.forEach((x) => sec.appendChild(row(x[0], x[1])));
+      return sec;
+    };
+
+    const drawDict = () => {
+      body.innerHTML = '';
+      if (dictErr) {
+        const d = document.createElement('div');
+        d.className = 'hf-err';
+        d.textContent = '出错了：' + dictErr;
+        body.appendChild(d);
+        return;
+      }
+      if (!dictData) {
+        const d = document.createElement('div');
+        d.className = 'hf-loading';
+        d.textContent = '查词中…';
+        body.appendChild(d);
+        return;
+      }
+      const wrap = document.createElement('div');
+      wrap.className = 'hf-dict';
+      const head = document.createElement('div');
+      head.className = 'hf-word';
+      const w = document.createElement('b');
+      w.textContent = dictData.word || srcText;
+      head.appendChild(w);
+      if (dictData.phonetic) {
+        const ph = document.createElement('span');
+        ph.textContent = dictData.phonetic;
+        head.appendChild(ph);
+      }
+      wrap.appendChild(head);
+
+      const s1 = section('词性 / 释义', (dictData.senses || []).map((s) => [s.pos, s.cn]));
+      if (s1) wrap.appendChild(s1);
+      const s2 = section('词组', (dictData.phrases || []).map((p) => [p.en, p.cn]));
+      if (s2) wrap.appendChild(s2);
+      const s3 = section('派生', (dictData.derivatives || []).map((d) => [(d.word || '') + (d.pos ? ' ' + d.pos : ''), d.cn]));
+      if (s3) wrap.appendChild(s3);
+
+      if ((dictData.examples || []).length) {
+        const sec = document.createElement('div');
+        sec.className = 'hf-sec';
+        const h = document.createElement('div');
+        h.className = 'hf-sec-h';
+        h.textContent = '例句';
+        sec.appendChild(h);
+        dictData.examples.forEach((ex) => {
+          const e = document.createElement('div');
+          e.className = 'hf-ex';
+          e.textContent = ex.en || '';
+          if (ex.cn) {
+            const i = document.createElement('i');
+            i.textContent = ex.cn;
+            e.appendChild(i);
+          }
+          sec.appendChild(e);
+        });
+        wrap.appendChild(sec);
+      }
+
+      if (!wrap.querySelector('.hf-sec')) {
+        const d = document.createElement('div');
+        d.className = 'hf-loading';
+        d.textContent = '没查到这个词的条目，换个词试试';
+        wrap.appendChild(d);
+      }
+      body.appendChild(wrap);
+    };
+
+    const drawTr = (text, isErr) => {
+      body.innerHTML = '';
+      const d = document.createElement('div');
+      d.className = isErr ? 'hf-err' : (text === null ? 'hf-dst hf-loading' : 'hf-dst');
+      d.textContent = text === null ? '翻译中…' : (isErr ? '出错了：' + text : text);
+      body.appendChild(d);
+    };
+
+    const ensureDict = () => {
+      if (dictData || dictBusy) return;
+      dictBusy = true;
+      dictErr = null;
+      requestDict(srcText).then((d) => {
+        dictBusy = false;
+        dictData = d;
+        dictCache.set(srcText, d);
+        if (view === 'dict') drawDict();
+      }).catch((e) => {
+        dictBusy = false;
+        dictErr = e.message || String(e);
+        if (view === 'dict') drawDict();
+      });
+    };
 
     const pad = 8;
     const w = Math.min(340, window.innerWidth - pad * 2);
@@ -1482,20 +1684,37 @@
     popup.style.top = (rect.bottom + 10) + 'px';
     r.appendChild(popup);
     requestAnimationFrame(() => popup.classList.add('show'));
-    popup.querySelector('[data-act="close"]').addEventListener('click', closePopup);
+    mark();
 
-    const dst = popup.querySelector('.hf-dst');
+    popup.addEventListener('click', (e) => {
+      const b = e.target.closest('.hf-btn');
+      if (!b) return;
+      if (b.dataset.act === 'close') return closePopup();
+      if (b.dataset.act === 'tr') {
+        view = 'tr';
+        mark();
+        const hit = cache.get(srcText);
+        drawTr(hit || null, false);
+        return;
+      }
+      if (b.dataset.act === 'dict') {
+        view = 'dict';
+        mark();
+        drawDict();
+        ensureDict();
+      }
+    });
+
     const hit = cache.get(srcText);
-    if (hit) { dst.className = 'hf-dst'; dst.textContent = hit; return; }
-
+    if (hit) { drawTr(hit, false); return; }
+    drawTr(null, false);
     requestOnce([srcText], (i, t) => {
       if (i === 0 && t) {
-        dst.className = 'hf-dst';
-        dst.textContent = t;
         cache.set(srcText, t);
         saveCache();
+        if (view === 'tr') drawTr(t, false);
       }
-    }).catch((e) => { dst.className = 'hf-err'; dst.textContent = '出错了：' + e.message; });
+    }).catch((e) => { if (view === 'tr') drawTr(e.message || String(e), true); });
   }
 
   document.addEventListener('mouseup', (e) => {

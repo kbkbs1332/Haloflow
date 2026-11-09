@@ -139,6 +139,46 @@ function extractArray(raw) {
   return arr.map((x) => (typeof x === 'string' ? x : String(x ?? '')));
 }
 
+/* ---------- 高考模式：单词卡 ---------- */
+
+const DICT_SYSTEM =
+  '你是高考英语词典引擎。用户会给你一个英文单词或短语，请输出严格 JSON（只输出 JSON，不要 markdown 代码块，不要任何解释）：\n' +
+  '{"word":"原词","phonetic":"/音标/","senses":[{"pos":"n.","cn":"释义"}],"phrases":[{"en":"搭配","cn":"中文"}],"derivatives":[{"word":"派生词","pos":"adj.","cn":"中文"}],"examples":[{"en":"例句","cn":"译文"}]}\n\n' +
+  '要求：\n' +
+  '1）senses：1-3 条，按高考常用度排序；pos 用 n. / v. / adj. / adv. / prep. / conj. / pron. 这类缩写。\n' +
+  '2）phrases：2-4 条高频词组或固定搭配，en 写英文，cn 写中文。\n' +
+  '3）derivatives：2-4 条同根派生词，给出词性和中文意思。\n' +
+  '4）examples：2 条贴近高考语境的例句，en 是英文，cn 是中文翻译。\n' +
+  '5）中文用简体；音标不确定就留空字符串；没有的字段给空数组，不要编造。';
+
+const asObj = (x) => (typeof x === 'string' ? { cn: x } : (x && typeof x === 'object' ? x : {}));
+const asStr = (x) => (typeof x === 'string' ? x : (typeof x === 'number' ? String(x) : ''));
+
+// 从模型输出里抠出 JSON 对象，容忍 ```json 包裹 / 前后噪声 / 字段缺失
+function parseDict(raw) {
+  if (typeof raw !== 'string') throw new Error('模型返回不是字符串');
+  let s = raw.trim();
+  s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  const a = s.indexOf('{');
+  const b = s.lastIndexOf('}');
+  if (a === -1 || b === -1 || b < a) throw new Error('模型没有返回 JSON 对象');
+  let j;
+  try {
+    j = JSON.parse(s.slice(a, b + 1));
+  } catch (_) {
+    throw new Error('词典 JSON 解析失败');
+  }
+  const list = (v) => (Array.isArray(v) ? v : []);
+  return {
+    word: asStr(j.word),
+    phonetic: asStr(j.phonetic),
+    senses: list(j.senses).map((x) => { const o = asObj(x); return { pos: asStr(o.pos), cn: asStr(o.cn) }; }).filter((x) => x.cn),
+    phrases: list(j.phrases).map((x) => { const o = asObj(x); return { en: asStr(o.en), cn: asStr(o.cn) }; }).filter((x) => x.en || x.cn),
+    derivatives: list(j.derivatives).map((x) => { const o = asObj(x); return { word: asStr(o.word), pos: asStr(o.pos), cn: asStr(o.cn) }; }).filter((x) => x.word),
+    examples: list(j.examples).map((x) => { const o = asObj(x); return { en: asStr(o.en), cn: asStr(o.cn) }; }).filter((x) => x.en)
+  };
+}
+
 /* ---------- 端点解析：中转优先，可回退直连 ---------- */
 const RELAY_BASE = 'https://relay.example.com/v1';
 
@@ -259,6 +299,26 @@ async function translateBatch(config, texts) {
     }
   }
   throw lastErr;
+}
+
+async function dictLookup(config, text) {
+  const messages = [
+    { role: 'system', content: DICT_SYSTEM },
+    { role: 'user', content: String(text || '').slice(0, 200) }
+  ];
+  const eps = endpointsOf(config);
+  let lastErr;
+  for (let attempt = 0; attempt < 2 * eps.length; attempt++) {
+    const ep = eps[Math.floor(attempt / 2) % eps.length];
+    try {
+      const raw = await callChat(config, messages, Math.min(config.timeoutMs || 60000, 45000), ep);
+      return parseDict(raw);
+    } catch (e) {
+      lastErr = e;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+  throw lastErr || new Error('词典请求失败');
 }
 
 /* ---------- 流式翻译（SSE + 增量 JSON 数组解析） ---------- */
@@ -420,6 +480,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           const texts = Array.isArray(msg.texts) ? msg.texts : [msg.texts];
           const out = await translateBatch(config, texts);
           sendResponse({ ok: true, translations: out });
+          return;
+        }
+
+        case 'dict': {
+          const out = await dictLookup(config, msg.text);
+          sendResponse({ ok: true, dict: out });
           return;
         }
 
